@@ -31,13 +31,14 @@ jobs:
             libsodium \
             openssl@3 \
             freetype \
-            libjpeg \
+            jpeg \
             webp \
             libpng \
             oniguruma \
             zlib \
             bzip2 \
             libzip \
+            gmp \
             composer
 
       - name: Setup PHP for running static-php-cli
@@ -67,9 +68,9 @@ jobs:
         run: |
           cd static-php-cli
           ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-cli \
-            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip
+            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip,gmp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,9 +78,9 @@ jobs:
         run: |
           cd static-php-cli
           ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-fpm \
-            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip
+            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip,gmp
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
