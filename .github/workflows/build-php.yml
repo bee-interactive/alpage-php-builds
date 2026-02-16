@@ -43,7 +43,7 @@ jobs:
       - name: Setup PHP for running static-php-cli
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: none
           coverage: none
 
