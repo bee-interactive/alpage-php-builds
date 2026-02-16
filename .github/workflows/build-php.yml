@@ -60,6 +60,8 @@ jobs:
             --with-php=${{ matrix.php }} \
             --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --retry=3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build PHP CLI
         run: |
@@ -68,6 +70,8 @@ jobs:
             bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-cli \
             --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build PHP FPM
         run: |
@@ -76,6 +80,8 @@ jobs:
             bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-fpm \
             --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Test built binaries
         run: |
