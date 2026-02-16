@@ -1,0 +1,96 @@
+{
+  "name": "alpage-php-build",
+  "description": "Custom PHP build for Alpage with all commonly needed extensions",
+  "php_versions": [
+    "8.1",
+    "8.2",
+    "8.3",
+    "8.4",
+    "8.5"
+  ],
+  "architecture": "aarch64-darwin",
+  "build_targets": [
+    "cli",
+    "fpm"
+  ],
+  "extensions": {
+    "builtin": [
+      "bcmath",
+      "bz2",
+      "calendar",
+      "ctype",
+      "curl",
+      "dom",
+      "exif",
+      "fileinfo",
+      "filter",
+      "ftp",
+      "gd",
+      "hash",
+      "iconv",
+      "intl",
+      "json",
+      "libxml",
+      "mbstring",
+      "mysqlnd",
+      "mysqli",
+      "openssl",
+      "pcntl",
+      "pcre",
+      "pdo",
+      "pdo_mysql",
+      "pdo_pgsql",
+      "pdo_sqlite",
+      "pgsql",
+      "phar",
+      "posix",
+      "session",
+      "simplexml",
+      "soap",
+      "sockets",
+      "sodium",
+      "sqlite3",
+      "tokenizer",
+      "xml",
+      "xmlreader",
+      "xmlwriter",
+      "zip",
+      "zlib"
+    ],
+    "pecl": [
+      "redis"
+    ]
+  },
+  "configure_flags": {
+    "common": [
+      "--enable-opcache",
+      "--with-openssl-argon2"
+    ],
+    "gd": [
+      "--with-freetype",
+      "--with-jpeg",
+      "--with-webp"
+    ],
+    "intl": [
+      "--enable-intl"
+    ],
+    "sodium": [
+      "--with-sodium"
+    ]
+  },
+  "dependencies": {
+    "homebrew": [
+      "icu4c",
+      "libsodium",
+      "openssl@3",
+      "freetype",
+      "jpeg",
+      "webp",
+      "libpng",
+      "oniguruma",
+      "zlib",
+      "bzip2",
+      "libzip"
+    ]
+  }
+}

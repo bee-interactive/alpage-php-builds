@@ -1,0 +1,93 @@
+name: Auto-Update PHP Versions
+
+on:
+  schedule:
+    # Runs every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  check-updates:
+    name: Check for PHP Updates
+    runs-on: ubuntu-latest
+    outputs:
+      has_updates: ${{ steps.check.outputs.has_updates }}
+      new_versions: ${{ steps.check.outputs.new_versions }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for new PHP versions
+        id: check
+        run: |
+          # Fetch latest versions from php.net
+          PHP_FAMILIES=("8.1" "8.2" "8.3" "8.4" "8.5")
+          NEW_VERSIONS=""
+          HAS_UPDATES=false
+
+          for family in "${PHP_FAMILIES[@]}"; do
+            echo "Checking PHP $family..."
+
+            # Fetch latest version from php.net API
+            LATEST=$(curl -s "https://www.php.net/releases/index.php?json&version=$family" | jq -r '.version // empty')
+
+            if [ -z "$LATEST" ]; then
+              echo "Could not fetch version for $family, skipping"
+              continue
+            fi
+
+            echo "Latest PHP $family version: $LATEST"
+
+            # Check if we already have a release for this version
+            if ! gh release view "php-$LATEST" >/dev/null 2>&1; then
+              echo "New version found: $LATEST"
+              NEW_VERSIONS="$NEW_VERSIONS $LATEST"
+              HAS_UPDATES=true
+            else
+              echo "Already have release for $LATEST"
+            fi
+          done
+
+          echo "has_updates=$HAS_UPDATES" >> $GITHUB_OUTPUT
+          echo "new_versions=$NEW_VERSIONS" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-builds:
+    name: Trigger Builds for New Versions
+    needs: check-updates
+    if: needs.check-updates.outputs.has_updates == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create release tag
+        run: |
+          # Get current date for tag
+          DATE=$(date +%Y.%m.%d)
+          TAG="auto-$DATE"
+
+          # Create annotated tag
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          git tag -a "$TAG" -m "Automatic build for new PHP versions
+
+          New versions detected:
+          ${{ needs.check-updates.outputs.new_versions }}
+
+          Triggered by scheduled workflow"
+
+          git push origin "$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify
+        run: |
+          echo "::notice::New PHP versions detected and build triggered!"
+          echo "New versions: ${{ needs.check-updates.outputs.new_versions }}"

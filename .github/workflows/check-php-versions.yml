@@ -1,0 +1,58 @@
+name: Check PHP Versions
+
+# This workflow just checks and reports available versions without building
+# Useful for monitoring
+
+on:
+  schedule:
+    # Runs daily at 8 AM UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Check Latest PHP Versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch latest PHP versions
+        run: |
+          echo "## Latest PHP Versions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Family | Latest | Released | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|----------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          PHP_FAMILIES=("8.1" "8.2" "8.3" "8.4" "8.5")
+
+          for family in "${PHP_FAMILIES[@]}"; do
+            # Fetch version info
+            JSON=$(curl -s "https://www.php.net/releases/index.php?json&version=$family")
+            VERSION=$(echo "$JSON" | jq -r '.version // "N/A"')
+            DATE=$(echo "$JSON" | jq -r '.date // "N/A"')
+
+            # Check support status
+            SUPPORTED=$(echo "$JSON" | jq -r '.supported_versions[]? // empty' | grep -c "^$family\$" || echo "0")
+
+            if [ "$SUPPORTED" = "1" ]; then
+              STATUS="✅ Active"
+            else
+              STATUS="⚠️ Security only"
+            fi
+
+            echo "| $family | $VERSION | $DATE | $STATUS |" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Check our releases
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Our Latest Builds" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Get latest release
+          LATEST_RELEASE=$(gh release view --json tagName,createdAt,name -q '{tag: .tagName, date: .createdAt, name: .name}')
+
+          echo "**Latest Release:** $(echo "$LATEST_RELEASE" | jq -r '.name')" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** $(echo "$LATEST_RELEASE" | jq -r '.tag')" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(echo "$LATEST_RELEASE" | jq -r '.date')" >> $GITHUB_STEP_SUMMARY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

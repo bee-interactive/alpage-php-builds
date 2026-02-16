@@ -1,0 +1,63 @@
+# Alpage PHP Build - Extensions List
+# This file lists all extensions to include in our custom PHP builds
+
+# === CRITICAL EXTENSIONS (Missing from official static-php-cli) ===
+sodium
+intl
+
+# === CRYPTOGRAPHY & SECURITY ===
+openssl
+# openssl-argon2 is included via openssl
+
+# === COMMON LARAVEL/SYMFONY REQUIREMENTS ===
+bcmath
+ctype
+curl
+dom
+fileinfo
+filter
+gd
+hash
+iconv
+json
+libxml
+mbstring
+openssl
+pcntl
+pcre
+pdo
+pdo_mysql
+pdo_pgsql
+pdo_sqlite
+pgsql
+phar
+session
+simplexml
+soap
+sockets
+tokenizer
+xml
+xmlreader
+xmlwriter
+zip
+zlib
+
+# === PERFORMANCE ===
+opcache
+
+# === DATABASE ===
+mysqlnd
+mysqli
+sqlite3
+
+# === IMAGE PROCESSING ===
+exif
+
+# === UTILITIES ===
+bz2
+calendar
+ftp
+posix
+
+# === PECL EXTENSIONS (Pre-compiled, optional) ===
+redis
