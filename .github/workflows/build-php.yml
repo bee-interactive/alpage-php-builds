@@ -27,6 +27,7 @@ jobs:
       - name: Install Homebrew dependencies
         run: |
           brew install \
+            pkg-config \
             icu4c \
             libsodium \
             openssl@3 \
