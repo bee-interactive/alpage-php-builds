@@ -48,18 +48,19 @@ jobs:
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
-            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
             --retry=3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build PHP CLI and FPM
+      - name: Build PHP CLI, FPM and xdebug
         run: |
           cd static-php-cli
           ./bin/spc build \
             bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-cli \
-            --build-fpm
+            --build-fpm \
+            --build-shared=xdebug
 
       - name: Test built binaries
         run: |
@@ -68,7 +69,7 @@ jobs:
           ./static-php-cli/buildroot/bin/php -r "echo 'sodium: ' . (extension_loaded('sodium') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'intl: ' . (extension_loaded('intl') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'redis: ' . (extension_loaded('redis') ? '✅' : '❌') . PHP_EOL;"
-
+          ls -la static-php-cli/buildroot/modules/ || echo "No modules directory"
 
       - name: Package binaries
         run: |
@@ -77,6 +78,12 @@ jobs:
           FPM_PATH=$(find static-php-cli/buildroot -name "php-fpm" -type f | head -1)
           echo "Found php-fpm at: $FPM_PATH"
           tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz -C "$(dirname $FPM_PATH)" php-fpm
+          if [ -f static-php-cli/buildroot/modules/xdebug.so ]; then
+            tar -czf dist/php-${{ matrix.php }}-xdebug-macos-aarch64.tar.gz -C static-php-cli/buildroot/modules xdebug.so
+            echo "xdebug.so packaged ✅"
+          else
+            echo "xdebug.so not found ⚠️"
+          fi
           cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS
 
       - name: Upload artifacts
@@ -119,35 +126,26 @@ jobs:
           body: |
             # Alpage PHP Builds ${{ github.ref_name }}
 
-            Custom PHP binaries with all commonly needed extensions included.
+            Custom PHP binaries for macOS ARM64 (Apple Silicon).
 
             ## What's Included
 
             ✅ **sodium** - Modern cryptography
             ✅ **intl** - Internationalization
             ✅ **redis** - Redis client
+            ✅ **gd** - Image manipulation
             ✅ **gmp** - Big number arithmetic
+            ✅ **xdebug** - Debugging & code coverage (separate .so)
             ✅ 40+ other standard extensions
 
             ## PHP Versions
 
-            - PHP 8.1
-            - PHP 8.2
-            - PHP 8.3
-            - PHP 8.4
-            - PHP 8.5
+            - PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5
 
-            ## Architecture
+            ## Files per version
 
-            - macOS ARM64 (Apple Silicon)
-
-            ## Verification
-
-            ```bash
-            wget https://github.com/bee-interactive/alpage-php-builds/releases/download/${{ github.ref_name }}/php-8.4-cli-macos-aarch64.tar.gz
-            tar -xzf php-8.4-cli-macos-aarch64.tar.gz
-            ./php -v
-            ./php -m | grep -E "(sodium|intl|redis)"
-            ```
+            - `php-{version}-cli-macos-aarch64.tar.gz` - PHP CLI binary
+            - `php-{version}-fpm-macos-aarch64.tar.gz` - PHP FPM binary
+            - `php-{version}-xdebug-macos-aarch64.tar.gz` - Xdebug extension (.so)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
