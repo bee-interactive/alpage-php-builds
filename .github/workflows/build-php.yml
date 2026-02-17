@@ -27,7 +27,7 @@ jobs:
       - name: Install Homebrew dependencies
         run: |
           brew install \
-            pkg-config \
+            pkgconf \
             icu4c \
             libsodium \
             openssl@3 \
@@ -41,6 +41,8 @@ jobs:
             libzip \
             gmp \
             composer
+          # Ensure pkg-config is accessible
+          echo "/opt/homebrew/bin" >> $GITHUB_PATH
 
       - name: Setup PHP for running static-php-cli
         uses: shivammathur/setup-php@v2
@@ -54,6 +56,13 @@ jobs:
           git clone --depth=1 https://github.com/crazywhalecc/static-php-cli.git
           cd static-php-cli
           composer install --no-dev --optimize-autoloader
+
+      - name: Run spc doctor
+        run: |
+          cd static-php-cli
+          ./bin/spc doctor --auto-fix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download PHP sources
         run: |
