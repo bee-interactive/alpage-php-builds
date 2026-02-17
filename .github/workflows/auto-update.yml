@@ -61,6 +61,8 @@ jobs:
     needs: check-updates
     if: needs.check-updates.outputs.has_updates == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository

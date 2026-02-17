@@ -14,7 +14,13 @@ jobs:
     name: Check Latest PHP Versions
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Fetch latest PHP versions
         run: |
           echo "## Latest PHP Versions" >> $GITHUB_STEP_SUMMARY
