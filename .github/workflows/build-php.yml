@@ -73,7 +73,9 @@ jobs:
         run: |
           mkdir -p dist
           tar -czf dist/php-${{ matrix.php }}-cli-macos-aarch64.tar.gz -C static-php-cli/buildroot/bin php
-          tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz -C static-php-cli/buildroot/sbin php-fpm
+          FPM_PATH=$(find static-php-cli/buildroot -name "php-fpm" -type f | head -1)
+          echo "Found php-fpm at: $FPM_PATH"
+          tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz -C "$(dirname $FPM_PATH)" php-fpm
           cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS
 
       - name: Upload artifacts
