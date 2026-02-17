@@ -62,13 +62,58 @@ jobs:
             --build-fpm \
             --build-embed
 
-      - name: Build xdebug shared extension
+      - name: Build xdebug with phpize
         continue-on-error: true
         run: |
-          cd static-php-cli
-          ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
-            --build-shared=xdebug
+          PHP_FAMILY="${{ matrix.php }}"
+
+          # Select xdebug version by PHP family
+          case "$PHP_FAMILY" in
+            "8.1"|"8.2"|"8.3")
+              XDEBUG_VERSION="3.3.2"
+              ;;
+            *)
+              XDEBUG_VERSION="3.4.0"
+              ;;
+          esac
+
+          echo "Building xdebug $XDEBUG_VERSION for PHP $PHP_FAMILY"
+
+          PHPIZE=$(find static-php-cli/buildroot/bin -name "phpize" | head -1)
+          PHP_CONFIG=$(find static-php-cli/buildroot/bin -name "php-config" | head -1)
+
+          echo "phpize: $PHPIZE"
+          echo "php-config: $PHP_CONFIG"
+
+          if [ -z "$PHPIZE" ] || [ -z "$PHP_CONFIG" ]; then
+            echo "phpize or php-config not found, cannot build xdebug"
+            exit 1
+          fi
+
+          # Ensure autoconf is available
+          brew install autoconf 2>/dev/null || true
+
+          # Download xdebug source from GitHub
+          curl -fSL "https://github.com/xdebug/xdebug/archive/refs/tags/${XDEBUG_VERSION}.tar.gz" -o xdebug.tar.gz
+          tar -xzf xdebug.tar.gz
+          cd "xdebug-${XDEBUG_VERSION}"
+
+          # Build using phpize
+          $PHPIZE
+          ./configure --with-php-config="$PHP_CONFIG"
+          make -j$(sysctl -n hw.ncpu)
+
+          # Find and install the built .so
+          XDEBUG_SO=$(find . -name "xdebug.so" | head -1)
+          if [ -n "$XDEBUG_SO" ]; then
+            mkdir -p ../static-php-cli/buildroot/modules
+            cp "$XDEBUG_SO" ../static-php-cli/buildroot/modules/xdebug.so
+            echo "xdebug.so installed ✅"
+            ls -la ../static-php-cli/buildroot/modules/
+          else
+            echo "xdebug.so not found after build ❌"
+            exit 1
+          fi
 
       - name: Test built binaries
         run: |
