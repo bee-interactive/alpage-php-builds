@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     name: Build PHP ${{ matrix.php }} for macOS ARM64
-    runs-on: macos-14  # macOS with Apple Silicon
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
@@ -24,30 +24,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Homebrew dependencies
-        run: |
-          brew install \
-            pkgconf \
-            icu4c \
-            libsodium \
-            openssl@3 \
-            freetype \
-            jpeg \
-            webp \
-            libpng \
-            oniguruma \
-            zlib \
-            bzip2 \
-            libzip \
-            gmp \
-            composer
-          # Ensure pkg-config is accessible
-          echo "/opt/homebrew/bin" >> $GITHUB_PATH
-
       - name: Setup PHP for running static-php-cli
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          tools: composer
           extensions: none
           coverage: none
 
@@ -58,9 +39,7 @@ jobs:
           composer install --no-dev --optimize-autoloader
 
       - name: Run spc doctor
-        run: |
-          cd static-php-cli
-          ./bin/spc doctor --auto-fix
+        run: cd static-php-cli && ./bin/spc doctor --auto-fix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -69,40 +48,23 @@ jobs:
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
-            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --retry=3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build PHP CLI
+      - name: Build PHP CLI and FPM
         run: |
           cd static-php-cli
           ./bin/spc build \
             bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --build-cli \
-            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip,gmp
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build PHP FPM
-        run: |
-          cd static-php-cli
-          ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
-            --build-fpm \
-            --with-libs=icu4c,libsodium,openssl,freetype,jpeg,webp,png,oniguruma,zlib,bzip2,libzip,gmp
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            --build-fpm
 
       - name: Test built binaries
         run: |
-          echo "Testing PHP CLI:"
           ./static-php-cli/buildroot/bin/php -v
-          echo ""
-          echo "Loaded extensions:"
           ./static-php-cli/buildroot/bin/php -m
-          echo ""
-          echo "Checking critical extensions:"
           ./static-php-cli/buildroot/bin/php -r "echo 'sodium: ' . (extension_loaded('sodium') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'intl: ' . (extension_loaded('intl') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'redis: ' . (extension_loaded('redis') ? '✅' : '❌') . PHP_EOL;"
@@ -110,19 +72,9 @@ jobs:
       - name: Package binaries
         run: |
           mkdir -p dist
-
-          # Package CLI
-          tar -czf dist/php-${{ matrix.php }}-cli-macos-aarch64.tar.gz \
-            -C static-php-cli/buildroot/bin php
-
-          # Package FPM
-          tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz \
-            -C static-php-cli/buildroot/sbin php-fpm
-
-          # Generate checksums
-          cd dist
-          shasum -a 256 *.tar.gz > SHA256SUMS
-          cat SHA256SUMS
+          tar -czf dist/php-${{ matrix.php }}-cli-macos-aarch64.tar.gz -C static-php-cli/buildroot/bin php
+          tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz -C static-php-cli/buildroot/sbin php-fpm
+          cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -169,7 +121,7 @@ jobs:
             ✅ **sodium** - Modern cryptography
             ✅ **intl** - Internationalization
             ✅ **redis** - Redis client
-            ✅ **imagick** - ImageMagick bindings (when available)
+            ✅ **gmp** - Big number arithmetic
             ✅ 40+ other standard extensions
 
             ## PHP Versions
@@ -187,18 +139,10 @@ jobs:
             ## Verification
 
             ```bash
-            # Download
-            wget https://github.com/YOUR_USERNAME/alpage-php-builds/releases/download/${{ github.ref_name }}/php-8.4-cli-macos-aarch64.tar.gz
-
-            # Verify checksum
-            shasum -a 256 -c SHA256SUMS
-
-            # Extract
+            wget https://github.com/bee-interactive/alpage-php-builds/releases/download/${{ github.ref_name }}/php-8.4-cli-macos-aarch64.tar.gz
             tar -xzf php-8.4-cli-macos-aarch64.tar.gz
-
-            # Test
             ./php -v
-            ./php -m | grep sodium
+            ./php -m | grep -E "(sodium|intl|redis)"
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
