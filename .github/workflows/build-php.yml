@@ -49,6 +49,7 @@ jobs:
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
             --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
+            --with-libs=onig,libjpeg,libwebp \
             --retry=3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,6 +59,7 @@ jobs:
           cd static-php-cli
           ./bin/spc build \
             bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            --with-libs=onig,libjpeg,libwebp \
             --build-cli \
             --build-fpm \
             --build-embed
@@ -119,9 +121,12 @@ jobs:
         run: |
           ./static-php-cli/buildroot/bin/php -v
           ./static-php-cli/buildroot/bin/php -m
-          ./static-php-cli/buildroot/bin/php -r "echo 'sodium: ' . (extension_loaded('sodium') ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'intl: ' . (extension_loaded('intl') ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'redis: ' . (extension_loaded('redis') ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'sodium:    ' . (function_exists('sodium_crypto_secretbox') ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'mb_split:  ' . (function_exists('mb_split')  ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'imagejpeg: ' . (function_exists('imagejpeg') ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'imagewebp: ' . (function_exists('imagewebp') ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'intl:      ' . (extension_loaded('intl')     ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'redis:     ' . (extension_loaded('redis')    ? '✅' : '❌') . PHP_EOL;"
           ls -la static-php-cli/buildroot/modules/ || echo "No modules directory"
 
       - name: Package binaries

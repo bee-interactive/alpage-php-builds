@@ -78,6 +78,11 @@
       "--with-sodium"
     ]
   },
+  "with_libs": [
+    "onig",
+    "libjpeg",
+    "libwebp"
+  ],
   "dependencies": {
     "homebrew": [
       "icu4c",
