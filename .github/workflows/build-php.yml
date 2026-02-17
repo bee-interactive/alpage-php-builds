@@ -48,7 +48,7 @@ jobs:
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
-            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,imagick,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pcov,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
+            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,imagick,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
             --retry=3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,7 +57,7 @@ jobs:
         run: |
           cd static-php-cli
           ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,imagick,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pcov,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
+            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,imagick,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
             --build-cli \
             --build-fpm
 
@@ -69,7 +69,6 @@ jobs:
           ./static-php-cli/buildroot/bin/php -r "echo 'intl: ' . (extension_loaded('intl') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'redis: ' . (extension_loaded('redis') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'xdebug: ' . (extension_loaded('xdebug') ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'pcov: ' . (extension_loaded('pcov') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'imagick: ' . (extension_loaded('imagick') ? '✅' : '❌') . PHP_EOL;"
 
       - name: Package binaries
