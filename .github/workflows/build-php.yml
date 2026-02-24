@@ -67,9 +67,9 @@ jobs:
       - name: Check phpize availability
         id: check_phpize
         run: |
-          PHPIZE=$(find static-php-cli/buildroot/bin -name "phpize" 2>/dev/null | head -1)
-          PHP_CONFIG=$(find static-php-cli/buildroot/bin -name "php-config" 2>/dev/null | head -1)
-          if [ -z "$PHPIZE" ] || [ -z "$PHP_CONFIG" ]; then
+          PHPIZE=$(find "$(pwd)/static-php-cli/buildroot/bin" -name "phpize" -type f 2>/dev/null | head -1)
+          PHP_CONFIG=$(find "$(pwd)/static-php-cli/buildroot/bin" -name "php-config" -type f 2>/dev/null | head -1)
+          if [ -z "$PHPIZE" ] || [ ! -x "$PHPIZE" ] || [ -z "$PHP_CONFIG" ] || [ ! -x "$PHP_CONFIG" ]; then
             echo "phpize_available=false" >> $GITHUB_OUTPUT
             echo "⚠️  phpize not found - extension .so build not possible"
             ls -la static-php-cli/buildroot/bin/ || true
@@ -82,7 +82,7 @@ jobs:
 
       - name: Install build dependencies
         if: steps.check_phpize.outputs.phpize_available == 'true'
-        run: brew install autoconf
+        run: brew list autoconf >/dev/null 2>&1 || brew install autoconf
 
       - name: Build pcov with phpize
         if: steps.check_phpize.outputs.phpize_available == 'true'
@@ -96,6 +96,12 @@ jobs:
           curl -fSL "https://github.com/krakjoe/pcov/archive/refs/tags/v${PCOV_VERSION}.tar.gz" -o pcov.tar.gz
           tar -xzf pcov.tar.gz
           cd "pcov-${PCOV_VERSION}"
+
+          PHP_VER_NUM=$("$PHP_CONFIG" --version | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+          if [ "$PHP_VER_NUM" -ge 80200 ]; then
+            sed -i '' 's/0, 0, 0, 0);/0, 0, 0);/' pcov.c
+            echo "Applied pcov PHP 8.2+ compatibility patch (php_pcre_match_impl signature)"
+          fi
 
           "$PHPIZE"
           ./configure --with-php-config="$PHP_CONFIG" --enable-pcov
