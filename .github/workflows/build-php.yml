@@ -48,7 +48,7 @@ jobs:
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
-            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xdebug,zip,zlib,redis \
+            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --for-libs=onig,libjpeg,libwebp \
             --retry=3
         env:
@@ -64,84 +64,75 @@ jobs:
             --build-fpm \
             --build-embed
 
-      - name: Build xdebug with phpize
-        continue-on-error: true
+      - name: Check phpize availability
+        id: check_phpize
         run: |
-          PHP_FAMILY="${{ matrix.php }}"
-
-          # Select xdebug version by PHP family
-          case "$PHP_FAMILY" in
-            "8.1"|"8.2"|"8.3")
-              XDEBUG_VERSION="3.3.2"
-              ;;
-            *)
-              XDEBUG_VERSION="3.4.0"
-              ;;
-          esac
-
-          echo "Building xdebug $XDEBUG_VERSION for PHP $PHP_FAMILY"
-
-          PHPIZE=$(find static-php-cli/buildroot/bin -name "phpize" | head -1)
-          PHP_CONFIG=$(find static-php-cli/buildroot/bin -name "php-config" | head -1)
-
-          echo "phpize: $PHPIZE"
-          echo "php-config: $PHP_CONFIG"
-
+          PHPIZE=$(find static-php-cli/buildroot/bin -name "phpize" 2>/dev/null | head -1)
+          PHP_CONFIG=$(find static-php-cli/buildroot/bin -name "php-config" 2>/dev/null | head -1)
           if [ -z "$PHPIZE" ] || [ -z "$PHP_CONFIG" ]; then
-            echo "phpize or php-config not found, cannot build xdebug"
-            exit 1
+            echo "phpize_available=false" >> $GITHUB_OUTPUT
+            echo "⚠️  phpize not found - extension .so build not possible"
+            ls -la static-php-cli/buildroot/bin/ || true
+          else
+            echo "phpize_available=true" >> $GITHUB_OUTPUT
+            echo "phpize=$PHPIZE" >> $GITHUB_OUTPUT
+            echo "php_config=$PHP_CONFIG" >> $GITHUB_OUTPUT
+            echo "✅ phpize: $PHPIZE"
           fi
 
-          # Ensure autoconf is available
-          brew install autoconf 2>/dev/null || true
+      - name: Install build dependencies
+        if: steps.check_phpize.outputs.phpize_available == 'true'
+        run: brew install autoconf
 
-          # Download xdebug source from GitHub
-          curl -fSL "https://github.com/xdebug/xdebug/archive/refs/tags/${XDEBUG_VERSION}.tar.gz" -o xdebug.tar.gz
-          tar -xzf xdebug.tar.gz
-          cd "xdebug-${XDEBUG_VERSION}"
+      - name: Build pcov with phpize
+        if: steps.check_phpize.outputs.phpize_available == 'true'
+        run: |
+          PHPIZE="${{ steps.check_phpize.outputs.phpize }}"
+          PHP_CONFIG="${{ steps.check_phpize.outputs.php_config }}"
+          PCOV_VERSION="1.0.11"
 
-          # Build using phpize
-          $PHPIZE
-          ./configure --with-php-config="$PHP_CONFIG"
+          echo "Building pcov $PCOV_VERSION for PHP ${{ matrix.php }}"
+
+          curl -fSL "https://github.com/krakjoe/pcov/archive/refs/tags/v${PCOV_VERSION}.tar.gz" -o pcov.tar.gz
+          tar -xzf pcov.tar.gz
+          cd "pcov-${PCOV_VERSION}"
+
+          "$PHPIZE"
+          ./configure --with-php-config="$PHP_CONFIG" --enable-pcov
           make -j$(sysctl -n hw.ncpu)
 
-          # Find and install the built .so
-          XDEBUG_SO=$(find . -name "xdebug.so" | head -1)
-          if [ -n "$XDEBUG_SO" ]; then
+          PCOV_SO=$(find . -name "pcov.so" | head -1)
+          if [ -n "$PCOV_SO" ]; then
             mkdir -p ../static-php-cli/buildroot/modules
-            cp "$XDEBUG_SO" ../static-php-cli/buildroot/modules/xdebug.so
-            echo "xdebug.so installed ✅"
-            ls -la ../static-php-cli/buildroot/modules/
+            cp "$PCOV_SO" ../static-php-cli/buildroot/modules/pcov.so
+            echo "✅ pcov.so built and installed"
           else
-            echo "xdebug.so not found after build ❌"
+            echo "❌ pcov.so not found after build"
             exit 1
           fi
 
       - name: Test built binaries
         run: |
           ./static-php-cli/buildroot/bin/php -v
-          ./static-php-cli/buildroot/bin/php -m
-          ./static-php-cli/buildroot/bin/php -r "echo 'sodium:    ' . (function_exists('sodium_crypto_secretbox') ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'mb_split:  ' . (function_exists('mb_split')  ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'imagejpeg: ' . (function_exists('imagejpeg') ? '✅' : '❌') . PHP_EOL;"
-          ./static-php-cli/buildroot/bin/php -r "echo 'imagewebp: ' . (function_exists('imagewebp') ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'intl:      ' . (extension_loaded('intl')     ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'redis:     ' . (extension_loaded('redis')    ? '✅' : '❌') . PHP_EOL;"
-          ls -la static-php-cli/buildroot/modules/ || echo "No modules directory"
+          ./static-php-cli/buildroot/bin/php -r "echo 'dl():      ' . (function_exists('dl')        ? '✅' : '❌') . PHP_EOL;"
+          ls -la static-php-cli/buildroot/modules/ || echo "  (no modules)"
 
       - name: Package binaries
         run: |
           mkdir -p dist
           tar -czf dist/php-${{ matrix.php }}-cli-macos-aarch64.tar.gz -C static-php-cli/buildroot/bin php
           FPM_PATH=$(find static-php-cli/buildroot -name "php-fpm" -type f | head -1)
-          echo "Found php-fpm at: $FPM_PATH"
           tar -czf dist/php-${{ matrix.php }}-fpm-macos-aarch64.tar.gz -C "$(dirname $FPM_PATH)" php-fpm
-          if [ -f static-php-cli/buildroot/modules/xdebug.so ]; then
-            tar -czf dist/php-${{ matrix.php }}-xdebug-macos-aarch64.tar.gz -C static-php-cli/buildroot/modules xdebug.so
-            echo "xdebug.so packaged ✅"
+
+          if [ -f static-php-cli/buildroot/modules/pcov.so ]; then
+            tar -czf dist/php-${{ matrix.php }}-pcov-macos-aarch64.tar.gz -C static-php-cli/buildroot/modules pcov.so
+            echo "✅ pcov.so packaged"
           else
-            echo "xdebug.so not found ⚠️"
+            echo "⚠️  pcov.so not available - skipping"
           fi
+
           cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS
 
       - name: Upload artifacts
@@ -185,16 +176,14 @@ jobs:
 
           Custom PHP binaries for macOS ARM64 (Apple Silicon).
 
-          ## What's Included
+          ## Included in PHP binary (static)
 
-          - sodium, intl, redis, gd, gmp, mbregex (mb_split), xdebug + 40 other extensions
+          intl, redis, sodium, gd, gmp, curl, openssl, pdo, mbstring + 30 other extensions
+
+          ## Optional extensions (.so)
+
+          - \`pcov\` — Code coverage driver
 
           ## PHP Versions
 
-          PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5
-
-          ## Files per version
-
-          - \`php-{version}-cli-macos-aarch64.tar.gz\`
-          - \`php-{version}-fpm-macos-aarch64.tar.gz\`
-          - \`php-{version}-xdebug-macos-aarch64.tar.gz\`"
+          PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5"
