@@ -98,9 +98,9 @@ jobs:
           cd "pcov-${PCOV_VERSION}"
 
           PHP_VER_NUM=$("$PHP_CONFIG" --version | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
-          if [ "$PHP_VER_NUM" -ge 80200 ]; then
+          if [ "$PHP_VER_NUM" -ge 80400 ]; then
             sed -i '' 's/0, 0, 0, 0);/0, 0, 0);/' pcov.c
-            echo "Applied pcov PHP 8.2+ compatibility patch (php_pcre_match_impl signature)"
+            echo "Applied pcov PHP 8.4+ compatibility patch (php_pcre_match_impl signature)"
           fi
 
           "$PHPIZE"
