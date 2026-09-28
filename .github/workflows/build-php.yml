@@ -68,14 +68,14 @@ jobs:
           fi
 
           echo "PHP ${{ matrix.php }} pre-release: $CANDIDATE"
-          echo "custom_url=--custom-url=php-src:$CANDIDATE" >> $GITHUB_OUTPUT
+          echo "download_args=--custom-url=php-src:$CANDIDATE --custom-git=redis:develop:https://github.com/phpredis/phpredis.git" >> $GITHUB_OUTPUT
 
       - name: Download PHP sources
         run: |
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
-            ${{ steps.source.outputs.custom_url }} \
+            ${{ steps.source.outputs.download_args }} \
             --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --for-libs=onig,libjpeg,libwebp \
             --retry=3
@@ -86,6 +86,9 @@ jobs:
         run: |
           if [ "${{ matrix.experimental }}" = "true" ]; then
             export SPC_MICRO_PATCHES=""
+          fi
+          if [ "${{ matrix.php }}" = "8.1" ]; then
+            export SPC_CMD_VAR_PHP_MAKE_EXTRA_CFLAGS="-g -fstack-protector-strong -fpic -fpie -Werror=unknown-warning-option --target=arm64-apple-darwin -Os -std=gnu17"
           fi
           cd static-php-cli
           ./bin/spc build \
