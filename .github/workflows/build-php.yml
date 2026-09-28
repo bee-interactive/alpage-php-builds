@@ -177,6 +177,14 @@ jobs:
           path: dist/*
           retention-days: 7
 
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-php-${{ matrix.php }}
+          path: static-php-cli/log/
+          retention-days: 7
+
   release:
     name: Create GitHub Release
     needs: build
