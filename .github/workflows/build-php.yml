@@ -14,8 +14,10 @@ on:
 jobs:
   build:
     name: Build PHP ${{ matrix.php }} for macOS ARM64
-    runs-on: macos-14
+    runs-on: macos-15
     continue-on-error: ${{ matrix.experimental }}
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '12.0'
     strategy:
       fail-fast: false
       matrix:
