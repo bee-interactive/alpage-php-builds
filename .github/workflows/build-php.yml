@@ -41,7 +41,7 @@ jobs:
 
       - name: Clone static-php-cli
         run: |
-          git clone --depth=1 https://github.com/crazywhalecc/static-php-cli.git
+          git clone --depth=1 --branch 2.8.5 https://github.com/crazywhalecc/static-php-cli.git
           cd static-php-cli
           composer install --no-dev --optimize-autoloader
 
