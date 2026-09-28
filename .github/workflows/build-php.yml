@@ -7,18 +7,23 @@ on:
   workflow_dispatch:
     inputs:
       php_versions:
-        description: 'PHP versions to build (comma-separated, e.g., 8.1,8.2,8.3,8.4,8.5)'
+        description: 'PHP versions to build (comma-separated, e.g., 8.1,8.2,8.3,8.4,8.5,8.6)'
         required: false
-        default: '8.1,8.2,8.3,8.4,8.5'
+        default: '8.1,8.2,8.3,8.4,8.5,8.6'
 
 jobs:
   build:
     name: Build PHP ${{ matrix.php }} for macOS ARM64
     runs-on: macos-14
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         php: ['8.1', '8.2', '8.3', '8.4', '8.5']
+        experimental: [false]
+        include:
+          - php: '8.6'
+            experimental: true
 
     steps:
       - name: Checkout repository
@@ -43,11 +48,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve PHP source
+        id: source
+        run: |
+          STABLE=$(curl -sL "https://www.php.net/releases/index.php?json&version=${{ matrix.php }}" | jq -r '.version // empty')
+          if [ -n "$STABLE" ]; then
+            echo "PHP $STABLE (stable)"
+            exit 0
+          fi
+
+          CANDIDATE=$(curl -sL "https://www.php.net/release-candidates.php?format=json" \
+            | jq -r --arg family "${{ matrix.php }}." \
+              '[.[] | objects | select(.active == true) | .release | objects | select((.version // "") | startswith($family))] | first | .files.xz.path // empty')
+          if [ -z "$CANDIDATE" ]; then
+            echo "::error::No stable release nor release candidate for PHP ${{ matrix.php }}"
+            exit 1
+          fi
+
+          echo "PHP ${{ matrix.php }} pre-release: $CANDIDATE"
+          echo "custom_url=--custom-url=php-src:$CANDIDATE" >> $GITHUB_OUTPUT
+
       - name: Download PHP sources
         run: |
           cd static-php-cli
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
+            ${{ steps.source.outputs.custom_url }} \
             --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
             --for-libs=onig,libjpeg,libwebp \
             --retry=3
@@ -86,6 +112,7 @@ jobs:
 
       - name: Build pcov with phpize
         if: steps.check_phpize.outputs.phpize_available == 'true'
+        continue-on-error: ${{ matrix.experimental }}
         run: |
           PHPIZE="${{ steps.check_phpize.outputs.phpize }}"
           PHP_CONFIG="${{ steps.check_phpize.outputs.php_config }}"
@@ -192,4 +219,4 @@ jobs:
 
           ## PHP Versions
 
-          PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5"
+          PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5 / 8.6"

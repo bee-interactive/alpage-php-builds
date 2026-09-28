@@ -24,7 +24,7 @@ jobs:
         id: check
         run: |
           # Fetch latest versions from php.net
-          PHP_FAMILIES=("8.1" "8.2" "8.3" "8.4" "8.5")
+          PHP_FAMILIES=("8.1" "8.2" "8.3" "8.4" "8.5" "8.6")
           NEW_VERSIONS=""
           HAS_UPDATES=false
 

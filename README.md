@@ -33,7 +33,8 @@ Our custom builds include:
 - PHP 8.2 (Active support until Dec 2024)
 - PHP 8.3 (Active support until Nov 2025)
 - PHP 8.4 (Active support until Nov 2026)
-- PHP 8.5 (In development)
+- PHP 8.5
+- PHP 8.6 (release candidate until GA)
 
 ## Build Process
 
