@@ -29,7 +29,7 @@ echo -e "${YELLOW}📦 Installing dependencies...${NC}"
 composer install --no-dev --optimize-autoloader 2>/dev/null || composer install
 
 # Extensions to build
-EXTENSIONS="bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis"
+EXTENSIONS="bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,hash,iconv,intl,json,libxml,mbstring,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis,readline"
 
 # Extract major.minor version
 PHP_MAJOR_MINOR=$(echo $PHP_VERSION | grep -oE '^[0-9]+\.[0-9]+')

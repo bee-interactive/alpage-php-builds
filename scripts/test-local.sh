@@ -47,7 +47,7 @@ ok "Doctor passed"
 step "Download PHP $PHP_VERSION sources"
 ./bin/spc download \
     --with-php="$PHP_VERSION" \
-    --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+    --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis,readline \
     --for-libs=onig,libjpeg,libwebp \
     --retry=3
 ok "Sources downloaded"
@@ -55,7 +55,7 @@ ok "Sources downloaded"
 # ── Step 4: Build ───────────────────────────────────────────────────────────
 step "Build PHP $PHP_VERSION (cli + fpm + embed)"
 ./bin/spc build \
-    bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+    bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis,readline \
     --with-libs=onig,libjpeg,libwebp \
     --build-cli \
     --build-fpm \

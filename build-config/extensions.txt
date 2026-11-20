@@ -58,6 +58,7 @@ bz2
 calendar
 ftp
 posix
+readline
 
 # === PECL EXTENSIONS (Pre-compiled, optional) ===
 redis

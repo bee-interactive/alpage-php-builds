@@ -7,15 +7,13 @@ Ce document explique comment les mises à jour de PHP sont gérées dans alpage-
 ### Comment ça marche
 
 1. **Vérification hebdomadaire** (chaque dimanche à 2h)
-   - GitHub Actions vérifie php.net pour les nouvelles versions
-   - Compare avec nos releases existantes
+   - GitHub Actions compare php.net avec le fichier `VERSIONS` de la dernière release
    - Détecte si PHP 8.4.3 → 8.4.4 par exemple
 
 2. **Build automatique**
-   - Si nouvelle version détectée → crée un tag `auto-YYYY.MM.DD`
-   - Déclenche le workflow de build
-   - Compile toutes les versions PHP (dont la nouvelle)
-   - Crée une GitHub Release automatiquement
+   - Si une version a bougé → lance « Build PHP Binaries » avec `release=true`
+   - Compile toutes les versions PHP
+   - Publie la release suivante (`v1.1.x` + 1) avec son fichier `VERSIONS`
 
 3. **Alpage récupère automatiquement**
    - Alpage utilise `/releases/latest/download/...`

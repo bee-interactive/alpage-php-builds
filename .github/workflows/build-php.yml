@@ -6,10 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      php_versions:
-        description: 'PHP versions to build (comma-separated, e.g., 8.1,8.2,8.3,8.4,8.5,8.6)'
-        required: false
-        default: '8.1,8.2,8.3,8.4,8.5,8.6'
+      release:
+        description: 'Publish a new release (next v1.1.x)'
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -53,9 +53,14 @@ jobs:
       - name: Resolve PHP source
         id: source
         run: |
+          if [ "${{ matrix.experimental }}" = "true" ]; then
+            REDIS_ARG="--custom-git=redis:develop:https://github.com/phpredis/phpredis.git"
+          fi
+
           STABLE=$(curl -sL "https://www.php.net/releases/index.php?json&version=${{ matrix.php }}" | jq -r '.version // empty')
           if [ -n "$STABLE" ]; then
             echo "PHP $STABLE (stable)"
+            echo "download_args=$REDIS_ARG" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -68,7 +73,7 @@ jobs:
           fi
 
           echo "PHP ${{ matrix.php }} pre-release: $CANDIDATE"
-          echo "download_args=--custom-url=php-src:$CANDIDATE --custom-git=redis:develop:https://github.com/phpredis/phpredis.git" >> $GITHUB_OUTPUT
+          echo "download_args=--custom-url=php-src:$CANDIDATE $REDIS_ARG" >> $GITHUB_OUTPUT
 
       - name: Download PHP sources
         run: |
@@ -76,7 +81,7 @@ jobs:
           ./bin/spc download \
             --with-php=${{ matrix.php }} \
             ${{ steps.source.outputs.download_args }} \
-            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            --for-extensions=bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis,readline \
             --for-libs=onig,libjpeg,libwebp \
             --retry=3
         env:
@@ -92,7 +97,7 @@ jobs:
           fi
           cd static-php-cli
           ./bin/spc build \
-            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis \
+            bcmath,bz2,calendar,ctype,curl,dom,exif,fileinfo,filter,ftp,gd,gmp,hash,iconv,intl,json,libxml,mbstring,mbregex,mysqlnd,mysqli,openssl,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib,redis,readline \
             --with-libs=onig,libjpeg,libwebp \
             --build-cli \
             --build-fpm \
@@ -162,6 +167,7 @@ jobs:
           ./static-php-cli/buildroot/bin/php -r "echo 'intl:      ' . (extension_loaded('intl')     ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'redis:     ' . (extension_loaded('redis')    ? '✅' : '❌') . PHP_EOL;"
           ./static-php-cli/buildroot/bin/php -r "echo 'dl():      ' . (function_exists('dl')        ? '✅' : '❌') . PHP_EOL;"
+          ./static-php-cli/buildroot/bin/php -r "echo 'readline:  ' . (function_exists('readline') ? '✅' : '❌') . PHP_EOL;"
           ls -la static-php-cli/buildroot/modules/ || echo "  (no modules)"
 
       - name: Package binaries
@@ -178,7 +184,9 @@ jobs:
             echo "⚠️  pcov.so not available - skipping"
           fi
 
-          cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS
+          echo "${{ matrix.php }} $(./static-php-cli/buildroot/bin/php -r 'echo PHP_VERSION;')" > dist/VERSIONS
+
+          cd dist && shasum -a 256 *.tar.gz > SHA256SUMS && cat SHA256SUMS VERSIONS
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -199,7 +207,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || inputs.release
     permissions:
       contents: write
 
@@ -217,21 +225,38 @@ jobs:
           mkdir -p release
           find artifacts -name "*.tar.gz" -exec cp {} release/ \;
           find artifacts -name "SHA256SUMS" -exec cat {} \; > release/SHA256SUMS
+          find artifacts -name "VERSIONS" -exec cat {} \; | sort -V > release/VERSIONS
+          cat release/VERSIONS
+
+      - name: Resolve release tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          LATEST=$(gh release view --json tagName -q .tagName)
+          NEXT=$(echo "$LATEST" | awk -F. -v OFS=. '{$NF = $NF + 1; print}')
+          echo "Next release: $NEXT"
+          echo "name=$NEXT" >> $GITHUB_OUTPUT
 
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create ${{ github.ref_name }} \
+          gh release create ${{ steps.tag.outputs.name }} \
             release/* \
-            --title "${{ github.ref_name }}" \
-            --notes "# Alpage PHP Builds ${{ github.ref_name }}
+            --target ${{ github.sha }} \
+            --title "${{ steps.tag.outputs.name }}" \
+            --notes "# Alpage PHP Builds ${{ steps.tag.outputs.name }}
 
           Custom PHP binaries for macOS ARM64 (Apple Silicon).
 
           ## Included in PHP binary (static)
 
-          intl, redis, sodium, gd, gmp, curl, openssl, pdo, mbstring + 30 other extensions
+          intl, redis, readline, sodium, gd, gmp, curl, openssl, pdo, mbstring + 30 other extensions
 
           ## Optional extensions (.so)
 
@@ -239,4 +264,4 @@ jobs:
 
           ## PHP Versions
 
-          PHP 8.1 / 8.2 / 8.3 / 8.4 / 8.5 / 8.6"
+          $(sed 's/^[^ ]* /- PHP /' release/VERSIONS)"
